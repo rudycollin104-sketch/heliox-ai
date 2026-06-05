@@ -1,8 +1,9 @@
 import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "./_core/trpc";
 import { invokeLLM } from "./_core/llm";
+import { generateAIResponse } from "./_core/openai-integration";
 import { COOKIE_NAME } from "../shared/const";
-import { conversations, messages, type InsertConversation, type InsertMessage } from "../drizzle/schema";
+import { conversations, messages, favorites, type InsertConversation, type InsertMessage, type InsertFavorite } from "../drizzle/schema";
 import { eq, like, gte, lte, and } from "drizzle-orm";
 import { getDb } from "./db";
 
@@ -19,6 +20,59 @@ export const appRouter = router({
         path: "/",
       });
       return { success: true };
+    }),
+  }),
+
+  favorites: router({
+    add: protectedProcedure
+      .input(z.object({ toolId: z.string() }))
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db || !ctx.user?.id) return { success: false };
+
+        try {
+          await db.insert(favorites).values({
+            userId: ctx.user.id,
+            toolId: input.toolId,
+          });
+          return { success: true };
+        } catch (error) {
+          console.error("Failed to add favorite:", error);
+          return { success: false };
+        }
+      }),
+
+    remove: protectedProcedure
+      .input(z.object({ toolId: z.string() }))
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db || !ctx.user?.id) return { success: false };
+
+        try {
+          await db.delete(favorites).where(
+            and(
+              eq(favorites.userId, ctx.user.id),
+              eq(favorites.toolId, input.toolId)
+            )
+          );
+          return { success: true };
+        } catch (error) {
+          console.error("Failed to remove favorite:", error);
+          return { success: false };
+        }
+      }),
+
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db || !ctx.user?.id) return [];
+
+      try {
+        const result = await db.select().from(favorites).where(eq(favorites.userId, ctx.user.id));
+        return result;
+      } catch (error) {
+        console.error("Failed to list favorites:", error);
+        return [];
+      }
     }),
   }),
 
@@ -140,18 +194,31 @@ export const appRouter = router({
           })),
         ];
 
-        const response = await invokeLLM({
-          messages: llmMessages,
-        });
+        try {
+          // Try OpenAI first if API key is available
+          const content = await generateAIResponse(
+            systemPrompt,
+            messages,
+            input.toolId
+          );
+          return { content };
+        } catch (openaiError) {
+          console.warn("OpenAI failed, falling back to built-in LLM", openaiError);
+          
+          // Fallback to built-in LLM
+          const response = await invokeLLM({
+            messages: llmMessages,
+          });
 
-        const rawContent = response.choices?.[0]?.message?.content;
-        const content = typeof rawContent === "string"
-          ? rawContent
-          : Array.isArray(rawContent)
-          ? rawContent.map((c: any) => c.text ?? "").join("")
-          : "Désolé, je n'ai pas pu générer une réponse.";
+          const rawContent = response.choices?.[0]?.message?.content;
+          const content = typeof rawContent === "string"
+            ? rawContent
+            : Array.isArray(rawContent)
+            ? rawContent.map((c: any) => c.text ?? "").join("")
+            : "Désolé, je n'ai pas pu générer une réponse.";
 
-        return { content };
+          return { content };
+        }
       }),
   }),
 });
