@@ -1,5 +1,5 @@
 import { useColors } from "@/hooks/use-colors";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Animated, StyleSheet, Text, View } from "react-native";
 
 export type ToastType = "success" | "error" | "info" | "warning";
@@ -21,7 +21,7 @@ const TOAST_ICONS: Record<ToastType, string> = {
 export function Toast({ message, type = "info", duration = 3000, onHide }: ToastProps) {
   const colors = useColors();
   const [visible, setVisible] = useState(true);
-  const fadeAnim = new Animated.Value(1);
+  const fadeAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     const timer = setTimeout(() => {

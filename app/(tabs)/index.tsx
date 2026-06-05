@@ -11,8 +11,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 export default function HomeScreen() {
   const colors = useColors();
   const { addRecentTool } = useHeliox();
-  const [showOnboarding, setShowOnboarding] = useState(false);
-
   useEffect(() => {
     checkFirstLaunch();
   }, []);
@@ -20,7 +18,6 @@ export default function HomeScreen() {
   const checkFirstLaunch = async () => {
     const hasLaunched = await AsyncStorage.getItem("@heliox_launched");
     if (!hasLaunched) {
-      setShowOnboarding(true);
       await AsyncStorage.setItem("@heliox_launched", "true");
     }
   };
@@ -112,7 +109,7 @@ export default function HomeScreen() {
         </View>
       </ScrollView>
 
-      {showOnboarding && <OnboardingModal />}
+      <OnboardingModal />
     </ScreenContainer>
   );
 }

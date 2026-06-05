@@ -24,12 +24,9 @@ export default function RootLayout() {
   useEffect(() => {
     if (loaded && !authLoading && rootNavigationState?.key) {
       SplashScreen.hideAsync();
-      // Redirect to login if not authenticated
-      if (!isAuthenticated) {
-        router.replace("/login");
-      }
+      // Navigation is ready - let the app handle routing
     }
-  }, [loaded, authLoading, isAuthenticated, rootNavigationState?.key]);
+  }, [loaded, authLoading, rootNavigationState?.key]);
 
   if (!loaded || authLoading) {
     return null;

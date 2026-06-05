@@ -1,7 +1,8 @@
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
+import { useHeliox } from "@/lib/heliox-context";
 import { router } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -16,10 +17,26 @@ import { AI_TOOLS } from "@/constants/ai-tools";
 
 export default function HistoryScreen() {
   const colors = useColors();
+  const { conversations: helioxConversations } = useHeliox();
   const [searchText, setSearchText] = useState("");
   const [selectedTool, setSelectedTool] = useState<string | null>(null);
   const [isLoading] = useState(false);
   const [conversations, setConversations] = useState<any[]>([]);
+
+  useEffect(() => {
+    const convArray = Object.entries(helioxConversations).map(([toolId, messages]: [string, any]) => {
+      const messageArray = Array.isArray(messages) ? messages : [];
+      return {
+        id: toolId,
+        toolId,
+        title: AI_TOOLS.find(t => t.id === toolId)?.name || toolId,
+        messages: messageArray,
+        lastMessage: messageArray[messageArray.length - 1]?.content || "",
+        timestamp: new Date().toISOString(),
+      };
+    });
+    setConversations(convArray);
+  }, [helioxConversations]);
 
   const filteredConversations = conversations.filter((conv) => {
     const matchesSearch = conv.title.toLowerCase().includes(searchText.toLowerCase());

@@ -1,10 +1,10 @@
 import { useColors } from "@/hooks/use-colors";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Animated, StyleSheet, View } from "react-native";
 
 export function LoadingIndicator() {
   const colors = useColors();
-  const spinValue = new Animated.Value(0);
+  const spinValue = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.loop(
