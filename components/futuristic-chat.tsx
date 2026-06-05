@@ -1,7 +1,8 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { View, Text, ScrollView, TextInput, Pressable, ActivityIndicator } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, { FadeInUp, FadeInDown, useSharedValue, withSpring } from "react-native-reanimated";
+import { MediaInput } from "./media-input";
 import { cn } from "@/lib/utils";
 
 interface Message {
@@ -18,9 +19,20 @@ interface FuturisticChatProps {
 }
 
 export function FuturisticChat({ messages, isLoading, onSendMessage }: FuturisticChatProps) {
-  const [inputValue, setInputValue] = React.useState("");
+  const [inputValue, setInputValue] = useState("");
+  const [showMediaInput, setShowMediaInput] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const messageScale = useSharedValue(0.95);
+
+  const handleImageSelected = (uri: string) => {
+    const message = `[Image: ${uri}]`;
+    onSendMessage(message);
+  };
+
+  const handleLinkAdded = (url: string) => {
+    const message = `[Lien: ${url}]`;
+    onSendMessage(message);
+  };
 
   useEffect(() => {
     messageScale.value = withSpring(1);
@@ -144,6 +156,12 @@ export function FuturisticChat({ messages, isLoading, onSendMessage }: Futuristi
         className="px-4 py-4 border-t border-purple-500/20"
       >
         <View className="flex-row gap-3 items-center">
+          <Pressable
+            onPress={() => setShowMediaInput(true)}
+            className="p-2 active:opacity-60"
+          >
+            <Text className="text-2xl">📎</Text>
+          </Pressable>
           <LinearGradient
             colors={["rgba(139, 92, 246, 0.2)", "rgba(59, 130, 246, 0.1)"]}
             start={{ x: 0, y: 0 }}
@@ -186,6 +204,13 @@ export function FuturisticChat({ messages, isLoading, onSendMessage }: Futuristi
           </Pressable>
         </View>
       </LinearGradient>
+
+      <MediaInput
+        visible={showMediaInput}
+        onClose={() => setShowMediaInput(false)}
+        onImageSelected={handleImageSelected}
+        onLinkAdded={handleLinkAdded}
+      />
     </View>
   );
 }

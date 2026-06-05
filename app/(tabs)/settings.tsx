@@ -1,10 +1,10 @@
 import { ScreenContainer } from "@/components/screen-container";
 import { useAuth } from "@/hooks/use-auth";
 import { useColors } from "@/hooks/use-colors";
-
 import { router } from "expo-router";
 import { useHeliox } from "@/lib/heliox-context";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useThemeStore } from "@/lib/theme-system";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useState } from "react";
 import {
@@ -22,6 +22,7 @@ export default function SettingsScreen() {
   const { user, logout } = useAuth();
   const colorScheme = useColorScheme();
   const { favorites, recentTools, conversations } = useHeliox();
+  const { mode, toggleTheme } = useThemeStore();
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
   const handleLogout = async () => {
@@ -130,8 +131,15 @@ export default function SettingsScreen() {
             <SettingsRow
               icon="🌙"
               label="Mode sombre"
-              value={colorScheme === "dark" ? "Activé" : "Désactivé"}
               colors={colors}
+              rightElement={
+                <Switch
+                  value={mode === "dark"}
+                  onValueChange={toggleTheme}
+                  trackColor={{ false: colors.border, true: colors.primary }}
+                  thumbColor="#fff"
+                />
+              }
             />
             <View style={[styles.divider, { backgroundColor: colors.border }]} />
             <SettingsRow
