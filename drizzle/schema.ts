@@ -59,3 +59,42 @@ export const favorites = mysqlTable("favorites", {
 
 export type Favorite = typeof favorites.$inferSelect;
 export type InsertFavorite = typeof favorites.$inferInsert;
+
+export const analytics = mysqlTable("analytics", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  toolId: varchar("toolId", { length: 64 }).notNull(),
+  timeSpent: int("timeSpent").default(0).notNull(), // en secondes
+  usageCount: int("usageCount").default(1).notNull(),
+  lastUsed: timestamp("lastUsed").defaultNow().notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Analytics = typeof analytics.$inferSelect;
+export type InsertAnalytics = typeof analytics.$inferInsert;
+
+export const sharedConversations = mysqlTable("sharedConversations", {
+  id: int("id").autoincrement().primaryKey(),
+  conversationId: int("conversationId").notNull(),
+  userId: int("userId").notNull(),
+  shareToken: varchar("shareToken", { length: 128 }).notNull().unique(),
+  expiresAt: timestamp("expiresAt"),
+  viewCount: int("viewCount").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type SharedConversation = typeof sharedConversations.$inferSelect;
+export type InsertSharedConversation = typeof sharedConversations.$inferInsert;
+
+export const offlineCache = mysqlTable("offlineCache", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  toolId: varchar("toolId", { length: 64 }).notNull(),
+  cachedResponse: text("cachedResponse").notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type OfflineCache = typeof offlineCache.$inferSelect;
+export type InsertOfflineCache = typeof offlineCache.$inferInsert;

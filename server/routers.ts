@@ -6,6 +6,7 @@ import { COOKIE_NAME } from "../shared/const";
 import { conversations, messages, favorites, type InsertConversation, type InsertMessage, type InsertFavorite } from "../drizzle/schema";
 import { eq, like, gte, lte, and } from "drizzle-orm";
 import { getDb } from "./db";
+import { trackToolUsage, getUserStats, createShareToken, getSharedConversation, cacheResponse, getCachedResponse } from "./_core/analytics";
 
 export const appRouter = router({
   health: publicProcedure.query(() => ({ status: "ok", app: "Heliox AI" })),
@@ -219,6 +220,54 @@ export const appRouter = router({
 
           return { content };
         }
+      }),
+  }),
+
+  analytics: router({
+    trackUsage: protectedProcedure
+      .input(z.object({ toolId: z.string(), timeSpent: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user?.id) return { success: false };
+        const result = await trackToolUsage(ctx.user.id, input.toolId, input.timeSpent);
+        return { success: !!result };
+      }),
+
+    getStats: protectedProcedure.query(async ({ ctx }) => {
+      if (!ctx.user?.id) return [];
+      return await getUserStats(ctx.user.id);
+    }),
+  }),
+
+  sharing: router({
+    createShareLink: protectedProcedure
+      .input(z.object({ conversationId: z.number(), expiresIn: z.number().optional() }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user?.id) return { success: false, token: null };
+        const token = await createShareToken(input.conversationId, ctx.user.id, input.expiresIn);
+        return { success: !!token, token };
+      }),
+
+    getShared: publicProcedure
+      .input(z.object({ shareToken: z.string() }))
+      .query(async ({ input }) => {
+        return await getSharedConversation(input.shareToken);
+      }),
+  }),
+
+  offlineCache: router({
+    cache: protectedProcedure
+      .input(z.object({ toolId: z.string(), response: z.string(), expiresIn: z.number().optional() }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user?.id) return { success: false };
+        const result = await cacheResponse(ctx.user.id, input.toolId, input.response, input.expiresIn);
+        return { success: !!result };
+      }),
+
+    get: protectedProcedure
+      .input(z.object({ toolId: z.string() }))
+      .query(async ({ input, ctx }) => {
+        if (!ctx.user?.id) return null;
+        return await getCachedResponse(ctx.user.id, input.toolId);
       }),
   }),
 });
