@@ -1,0 +1,42 @@
+name: Build APK with EAS
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9.12.0
+      
+      - name: Install dependencies
+        run: pnpm install
+      
+      - name: Install EAS CLI
+        run: npm install -g eas-cli
+      
+      - name: Build APK
+        run: eas build --platform android --non-interactive
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      
+      - name: Upload APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: heliox-ai-apk
+          path: '*.apk'
+          retention-days: 30
+
