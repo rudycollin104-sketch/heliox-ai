@@ -35,16 +35,7 @@ export default function ToolScreen() {
   const [showShareMenu, setShowShareMenu] = useState(false);
   const flatListRef = useRef<FlatList>(null);
 
-  const chatMutation = trpc.ai.chat.useMutation({
-    onSuccess: (data) => {
-      setStreamingContent(data.content || "");
-      setIsStreaming(false);
-    },
-    onError: (error) => {
-      Alert.alert("Erreur", "Impossible de générer la réponse");
-      setIsStreaming(false);
-    },
-  });
+  const chatMutation = trpc.ai.chat.useMutation();
 
   useEffect(() => {
     if (tool) {
@@ -57,7 +48,7 @@ export default function ToolScreen() {
   }, [tool?.id]);
 
   useEffect(() => {
-    if (messages.length > 0 && tool) {
+    if (tool) {
       saveConversation(tool.id, tool.name, messages);
     }
   }, [messages]);
@@ -92,21 +83,17 @@ export default function ToolScreen() {
     setMessages(newMessages);
     setInputText("");
     setIsLoading(true);
+    setIsStreaming(true);
 
     try {
-      setIsStreaming(true);
-      setStreamingContent("");
-
       const result = await chatMutation.mutateAsync({
         toolId: tool.id,
         systemPrompt: tool.systemPrompt,
         messages: newMessages.map((m) => ({ role: m.role, content: m.content })),
       });
 
-      const content = result.content;
-      setStreamingContent(content);
-      
-      setTimeout(() => {
+      if (result && result.content) {
+        const content = result.content;
         const assistantMessage: ChatMessage = {
           id: (Date.now() + 1).toString(),
           role: "assistant",
@@ -114,13 +101,13 @@ export default function ToolScreen() {
           timestamp: Date.now(),
         };
         setMessages((prev) => [...prev, assistantMessage]);
-        setIsStreaming(false);
-        setStreamingContent("");
-      }, Math.min(content.length * 8, 2000));
+      }
     } catch (error) {
+      console.error("Chat error:", error);
       Alert.alert("Erreur", "Impossible de contacter l'IA. Réessayez.");
-      setIsStreaming(false);
     } finally {
+      setIsStreaming(false);
+      setStreamingContent("");
       setIsLoading(false);
     }
 
@@ -129,364 +116,223 @@ export default function ToolScreen() {
     }, 100);
   };
 
-  const handleSuggestion = (suggestion: string) => {
-    setInputText(suggestion);
-  };
-
-  const handleClear = () => {
-    Alert.alert("Nouvelle conversation", "Voulez-vous effacer cette conversation ?", [
-      { text: "Annuler", style: "cancel" },
+  const handleClearHistory = () => {
+    Alert.alert("Effacer l'historique", "Êtes-vous sûr ?", [
+      { text: "Annuler", onPress: () => {} },
       {
         text: "Effacer",
-        style: "destructive",
         onPress: () => {
-          setMessages([]);
           clearConversation(tool.id);
+          setMessages([]);
         },
       },
     ]);
   };
 
-  const renderMessage = ({ item }: { item: ChatMessage }) => {
-    const isUser = item.role === "user";
-    return (
-      <View style={[styles.messageRow, isUser && styles.messageRowUser]}>
-        {!isUser && (
-          <View style={[styles.avatar, { backgroundColor: tool.color + "30" }]}>
-            <Text style={styles.avatarEmoji}>{tool.icon}</Text>
-          </View>
-        )}
-        <View
-          style={[
-            styles.messageBubble,
-            isUser
-              ? [styles.userBubble, { backgroundColor: colors.primary }]
-              : [styles.aiBubble, { backgroundColor: colors.surface, borderColor: colors.border }],
-          ]}
-        >
-          <Text
-            style={[
-              styles.messageText,
-              { color: isUser ? "#fff" : colors.foreground },
-            ]}
-          >
-            {item.content}
-          </Text>
-        </View>
-      </View>
-    );
-  };
-
   return (
-    <ScreenContainer containerClassName="bg-background" edges={["top", "left", "right"]}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
-        <Pressable
-          style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.6 }]}
-          onPress={() => router.back()}
-        >
-          <Text style={[styles.backIcon, { color: colors.primary }]}>←</Text>
-        </Pressable>
-
-        <View style={[styles.toolInfo]}>
-          <View style={[styles.toolIconSmall, { backgroundColor: tool.color + "20" }]}>
-            <Text style={styles.toolIconEmoji}>{tool.icon}</Text>
-          </View>
-          <View style={styles.toolTitleContainer}>
-            <Text style={[styles.toolName, { color: colors.foreground }]} numberOfLines={1}>
-              {tool.name}
-            </Text>
-            <Text style={[styles.toolCategory, { color: colors.muted }]} numberOfLines={1}>
-              {tool.description}
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.headerActions}>
-          <Pressable
-            style={({ pressed }) => [styles.headerBtn, pressed && { opacity: 0.6 }]}
-            onPress={() => toggleFavorite(tool.id)}
-          >
-            <Text style={styles.headerBtnIcon}>{favorite ? "❤️" : "🤍"}</Text>
+    <ScreenContainer containerClassName="bg-background">
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.container}>
+        {/* Header */}
+        <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+          <Pressable onPress={() => router.back()} style={({ pressed }) => pressed && { opacity: 0.6 }}>
+            <Text style={[styles.backBtn, { color: colors.primary }]}>← Retour</Text>
           </Pressable>
-          {messages.length > 0 && (
-            <>
-              <Pressable
-                style={({ pressed }) => [styles.headerBtn, pressed && { opacity: 0.6 }]}
-                onPress={() => setShowShareMenu(true)}
-              >
-                <Text style={styles.headerBtnIcon}>🔗</Text>
-              </Pressable>
-              <Pressable
-                style={({ pressed }) => [styles.headerBtn, pressed && { opacity: 0.6 }]}
-                onPress={handleClear}
-              >
-                <Text style={styles.headerBtnIcon}>🗑️</Text>
-              </Pressable>
-            </>
-          )}
+          <View style={styles.titleContainer}>
+            <Text style={[styles.title, { color: colors.foreground }]}>{tool.name}</Text>
+            <Text style={[styles.subtitle, { color: colors.muted }]}>{tool.category}</Text>
+          </View>
+          <View style={styles.actions}>
+            <Pressable
+              onPress={() => toggleFavorite(tool.id)}
+              style={({ pressed }) => pressed && { opacity: 0.6 }}
+            >
+              <Text style={styles.favoriteBtn}>{favorite ? "❤️" : "🤍"}</Text>
+            </Pressable>
+            <Pressable onPress={() => setShowShareMenu(true)} style={({ pressed }) => pressed && { opacity: 0.6 }}>
+              <Text style={styles.shareBtn}>📤</Text>
+            </Pressable>
+          </View>
         </View>
-      </View>
 
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={0}
-      >
         {/* Messages */}
-        {messages.length === 0 ? (
-          <ScrollView
-            style={{ flex: 1 }}
-            contentContainerStyle={styles.emptyContainer}
-            showsVerticalScrollIndicator={false}
-          >
-            {/* Welcome */}
-            <View style={[styles.welcomeCard, { backgroundColor: tool.color + "15", borderColor: tool.color + "30" }]}>
-              <Text style={styles.welcomeIcon}>{tool.icon}</Text>
-              <Text style={[styles.welcomeTitle, { color: colors.foreground }]}>{tool.name}</Text>
-              <Text style={[styles.welcomeDesc, { color: colors.muted }]}>{tool.description}</Text>
-            </View>
-
-            {/* Suggestions */}
-            <Text style={[styles.suggestionsTitle, { color: colors.muted }]}>
-              💡 Suggestions pour commencer
-            </Text>
-            {tool.suggestions.map((suggestion, index) => (
-              <Pressable
-                key={index}
-                style={({ pressed }) => [
-                  styles.suggestionChip,
-                  { backgroundColor: colors.surface, borderColor: colors.border },
-                  pressed && { opacity: 0.7, transform: [{ scale: 0.98 }] },
+        <FlatList
+          ref={flatListRef}
+          data={messages}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <View
+              style={[
+                styles.messageBubble,
+                item.role === "user"
+                  ? { alignSelf: "flex-end", backgroundColor: colors.primary }
+                  : { alignSelf: "flex-start", backgroundColor: colors.surface },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.messageText,
+                  { color: item.role === "user" ? "#fff" : colors.foreground },
                 ]}
-                onPress={() => handleSuggestion(suggestion)}
               >
-                <Text style={[styles.suggestionText, { color: colors.foreground }]}>
-                  {suggestion}
-                </Text>
-                <Text style={{ color: colors.primary, fontSize: 16 }}>→</Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-        ) : (
-          <FlatList
-            ref={flatListRef}
-            data={messages}
-            keyExtractor={(item) => item.id}
-            renderItem={renderMessage}
-            contentContainerStyle={styles.messagesList}
-            showsVerticalScrollIndicator={false}
-            onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
-            ListFooterComponent={
-              isLoading || isStreaming ? (
-                <View style={styles.loadingRow}>
-                  <View style={[styles.avatar, { backgroundColor: tool.color + "30" }]}>
-                    <Text style={styles.avatarEmoji}>{tool.icon}</Text>
-                  </View>
-                  <View style={[styles.messageBubble, styles.aiBubble, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                    {isStreaming && streamingContent ? (
-                      <StreamingResponse content={streamingContent} isStreaming={true} color={colors.foreground} />
-                    ) : (
-                      <>
-                        <ActivityIndicator size="small" color={tool.color} />
-                        <Text style={[styles.loadingText, { color: colors.muted }]}>En train de réfléchir...</Text>
-                      </>
-                    )}
-                  </View>
+                {item.content}
+              </Text>
+            </View>
+          )}
+          contentContainerStyle={styles.messagesList}
+          scrollEnabled={true}
+          ListFooterComponent={
+            isStreaming ? (
+              <View style={styles.streamingContainer}>
+                <View style={[styles.messageBubble, { backgroundColor: colors.surface, alignSelf: "flex-start" }]}>
+                  <Text style={[styles.messageText, { color: colors.foreground }]}>{streamingContent}</Text>
+                  <ActivityIndicator size="small" color={colors.primary} style={styles.loadingIndicator} />
                 </View>
-              ) : null
-            }
-          />
-        )}
+              </View>
+            ) : null
+          }
+        />
 
         {/* Input */}
         <View style={[styles.inputContainer, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
-          <View style={[styles.inputRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <TextInput
-              style={[styles.textInput, { color: colors.foreground }]}
-              placeholder={tool.placeholder}
-              placeholderTextColor={colors.muted}
-              value={inputText}
-              onChangeText={setInputText}
-              multiline
-              maxLength={2000}
-              returnKeyType="default"
-            />
-            <Pressable
-              style={({ pressed }) => [
-                styles.sendBtn,
-                { backgroundColor: inputText.trim() && !isLoading ? colors.primary : colors.border },
-                pressed && { opacity: 0.8 },
-              ]}
-              onPress={handleSend}
-              disabled={!inputText.trim() || isLoading}
-            >
-              <Text style={styles.sendIcon}>↑</Text>
-            </Pressable>
-          </View>
+          <TextInput
+            style={[
+              styles.input,
+              {
+                backgroundColor: colors.surface,
+                color: colors.foreground,
+                borderColor: colors.border,
+              },
+            ]}
+            placeholder="Écrivez votre message..."
+            placeholderTextColor={colors.muted}
+            value={inputText}
+            onChangeText={setInputText}
+            multiline
+            editable={!isLoading}
+          />
+          <Pressable
+            onPress={handleSend}
+            disabled={isLoading || !inputText.trim()}
+            style={({ pressed }) => [
+              styles.sendBtn,
+              { backgroundColor: colors.primary },
+              (pressed || isLoading) && { opacity: 0.7 },
+            ]}
+          >
+            {isLoading ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.sendBtnText}>Envoyer</Text>
+            )}
+          </Pressable>
         </View>
       </KeyboardAvoidingView>
 
       <ShareMenu
         visible={showShareMenu}
         onClose={() => setShowShareMenu(false)}
-        conversationTitle={tool?.name || "Conversation"}
-        conversationText={messages.map((m) => `${m.role === "user" ? "Vous" : tool?.name || "IA"}: ${m.content}`).join("\n\n")}
+        conversationTitle={`${tool.name} - ${new Date().toLocaleDateString()}`}
+        conversationText={messages.map((m) => `${m.role === 'user' ? 'Vous' : 'IA'}: ${m.content}`).join('\n\n')}
       />
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    gap: 12,
+  },
+  backBtn: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  titleContainer: {
+    flex: 1,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  subtitle: {
+    fontSize: 12,
+  },
+  actions: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  favoriteBtn: {
+    fontSize: 20,
+  },
+  shareBtn: {
+    fontSize: 20,
+  },
+  messagesList: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 12,
+  },
+  messageBubble: {
+    maxWidth: "85%",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  messageText: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  streamingContainer: {
+    marginTop: 8,
+  },
+  loadingIndicator: {
+    marginTop: 8,
+  },
+  inputContainer: {
+    flexDirection: "row",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    gap: 8,
+    alignItems: "flex-end",
+  },
+  input: {
+    flex: 1,
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    maxHeight: 100,
+    fontSize: 14,
+  },
+  sendBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: 70,
+  },
+  sendBtnText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 14,
+  },
   notFound: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
     gap: 16,
   },
-  notFoundText: { fontSize: 18, fontWeight: "700" },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 0.5,
-    gap: 10,
+  notFoundText: {
+    fontSize: 18,
+    fontWeight: "700",
   },
-  backBtn: { padding: 4 },
-  backIcon: { fontSize: 24, fontWeight: "600" },
-  toolInfo: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  toolIconSmall: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  toolIconEmoji: { fontSize: 20 },
-  toolTitleContainer: { flex: 1 },
-  toolName: { fontSize: 15, fontWeight: "700" },
-  toolCategory: { fontSize: 11, marginTop: 1 },
-  headerActions: { flexDirection: "row", gap: 4 },
-  headerBtn: { padding: 6 },
-  headerBtnIcon: { fontSize: 20 },
-  emptyContainer: {
-    padding: 20,
-    paddingBottom: 40,
-    gap: 12,
-  },
-  welcomeCard: {
-    borderRadius: 20,
-    borderWidth: 1,
-    padding: 24,
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 8,
-  },
-  welcomeIcon: { fontSize: 48 },
-  welcomeTitle: { fontSize: 20, fontWeight: "800", textAlign: "center" },
-  welcomeDesc: { fontSize: 14, textAlign: "center", lineHeight: 20 },
-  suggestionsTitle: { fontSize: 13, fontWeight: "600", marginBottom: 4 },
-  suggestionChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: 14,
-    borderRadius: 14,
-    borderWidth: 1,
-    gap: 8,
-  },
-  suggestionText: { flex: 1, fontSize: 14, lineHeight: 20 },
-  messagesList: {
-    padding: 16,
-    paddingBottom: 8,
-    gap: 12,
-  },
-  messageRow: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    gap: 8,
-    marginBottom: 12,
-  },
-  messageRowUser: {
-    flexDirection: "row-reverse",
-  },
-  avatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-  },
-  avatarEmoji: { fontSize: 18 },
-  messageBubble: {
-    maxWidth: "78%",
-    padding: 12,
-    borderRadius: 16,
-  },
-  userBubble: {
-    borderBottomRightRadius: 4,
-  },
-  aiBubble: {
-    borderWidth: 1,
-    borderBottomLeftRadius: 4,
-  },
-  messageText: {
-    fontSize: 15,
-    lineHeight: 22,
-  },
-  loadingRow: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    gap: 8,
-    marginBottom: 12,
-  },
-  loadingBubble: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 12,
-    borderRadius: 16,
-    borderBottomLeftRadius: 4,
-    borderWidth: 1,
-    gap: 8,
-  },
-  loadingText: { fontSize: 14 },
-  inputContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderTopWidth: 0.5,
-    paddingBottom: 20,
-  },
-  inputRow: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    borderRadius: 20,
-    borderWidth: 1,
-    paddingLeft: 16,
-    paddingRight: 6,
-    paddingVertical: 6,
-    gap: 8,
-  },
-  textInput: {
-    flex: 1,
-    fontSize: 15,
-    maxHeight: 120,
-    paddingVertical: 6,
-    lineHeight: 22,
-  },
-  sendBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-  },
-  sendIcon: { color: "#fff", fontSize: 18, fontWeight: "700" },
 });

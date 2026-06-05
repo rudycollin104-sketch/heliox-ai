@@ -11,6 +11,9 @@ import "../global.css";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { HelioxProvider } from "@/lib/heliox-context";
 import { ThemeProvider as HelioxThemeProvider } from "@/lib/theme-provider";
+import { trpc, createTRPCClient } from "@/lib/trpc";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useMemo } from "react";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -20,6 +23,9 @@ export default function RootLayout() {
   const { isAuthenticated, loading: authLoading } = useAuth();
   const router = useRouter();
   const rootNavigationState = useRootNavigationState();
+
+  const queryClient = useMemo(() => new QueryClient(), []);
+  const trpcClient = useMemo(() => createTRPCClient(), []);
 
   useEffect(() => {
     if (loaded && !authLoading && rootNavigationState?.key) {
@@ -33,18 +39,22 @@ export default function RootLayout() {
   }
 
   return (
-    <HelioxThemeProvider>
-      <HelioxProvider>
-        <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-          <Stack>
-            <Stack.Screen name="login" options={{ headerShown: false }} />
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="tool/[id]" options={{ headerShown: false, presentation: "card" }} />
-            <Stack.Screen name="+not-found" />
-          </Stack>
-          <StatusBar style="auto" />
-        </ThemeProvider>
-      </HelioxProvider>
-    </HelioxThemeProvider>
+    <trpc.Provider client={trpcClient} queryClient={queryClient}>
+      <QueryClientProvider client={queryClient}>
+        <HelioxThemeProvider>
+          <HelioxProvider>
+            <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+              <Stack>
+                <Stack.Screen name="login" options={{ headerShown: false }} />
+                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <Stack.Screen name="tool/[id]" options={{ headerShown: false, presentation: "card" }} />
+                <Stack.Screen name="+not-found" />
+              </Stack>
+              <StatusBar style="auto" />
+            </ThemeProvider>
+          </HelioxProvider>
+        </HelioxThemeProvider>
+      </QueryClientProvider>
+    </trpc.Provider>
   );
 }

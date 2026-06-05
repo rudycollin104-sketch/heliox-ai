@@ -26,13 +26,17 @@ export default function HistoryScreen() {
   useEffect(() => {
     const convArray = Object.entries(helioxConversations).map(([toolId, messages]: [string, any]) => {
       const messageArray = Array.isArray(messages) ? messages : [];
+      const tool = AI_TOOLS.find(t => t.id === toolId);
       return {
         id: toolId,
         toolId,
-        title: AI_TOOLS.find(t => t.id === toolId)?.name || toolId,
+        toolName: tool?.name || toolId,
+        title: tool?.name || toolId,
         messages: messageArray,
+        messageCount: messageArray.length,
         lastMessage: messageArray[messageArray.length - 1]?.content || "",
         timestamp: new Date().toISOString(),
+        updatedAt: new Date(),
       };
     });
     setConversations(convArray);
