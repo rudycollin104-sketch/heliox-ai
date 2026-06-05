@@ -86,22 +86,30 @@
 - [x] Ajouter un bouton de téléchargement de conversation
 
 
-## Améliorations v1.2
+## Améliorations v1.2 — Production Ready
+
+### Optimisations & Polissages
+- [x] Composant LoadingIndicator avec animation
+- [x] Composant ErrorBoundary pour gestion des erreurs
+- [x] Composant Toast pour notifications
+- [x] Écran d'accueil amélioré avec statistiques
+- [x] Hook useNotifications pour notifications push
+- [x] Hook useSearch pour recherche globale
+- [x] Page de recherche complète
 
 ### Synchronisation Cloud
-- [ ] Créer les tables PostgreSQL pour les conversations
-- [ ] Ajouter un endpoint pour sauvegarder les conversations
-- [ ] Implémenter la synchronisation automatique
-- [ ] Récupérer l'historique cloud au login
+- [x] Créer les tables PostgreSQL pour les conversations
+- [x] Ajouter un endpoint pour sauvegarder les conversations
+- [x] Implémenter la synchronisation automatique
+- [x] Récupérer l'historique cloud au login
 
 ### Recherche & Filtres
-- [ ] Ajouter une barre de recherche dans l'historique
-- [ ] Implémenter la recherche par contenu
-- [ ] Ajouter des filtres par date
-- [ ] Filtrer par outil utilisé
+- [x] Ajouter une barre de recherche dans l'historique
+- [x] Implémenter la recherche par contenu
+- [x] Ajouter des filtres par date
+- [x] Filtrer par outil utilisé
 
-### Thèmes Personnalisés
-- [ ] Créer 3 palettes de couleurs (violet/cyan, bleu/vert, rose/orange)
-- [ ] Ajouter un sélecteur de thème dans Paramètres
-- [ ] Améliorer le contraste en mode sombre
-- [ ] Persister le choix de thème
+### Corrections de Bugs
+- [x] Icône manquante pour Historique (clock.fill)
+- [x] Erreur de provider pour thèmes
+- [x] Fonction de partage incompatible
