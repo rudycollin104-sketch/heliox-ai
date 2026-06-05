@@ -7,6 +7,7 @@ import { conversations, messages, favorites, type InsertConversation, type Inser
 import { eq, like, gte, lte, and } from "drizzle-orm";
 import { getDb } from "./db";
 import { trackToolUsage, getUserStats, createShareToken, getSharedConversation, cacheResponse, getCachedResponse } from "./_core/analytics";
+import { createWebhook, triggerWebhook, updateUserPreferences, getRecommendedTools, addCollaborator, createCollaborationInvite, acceptCollaborationInvite, getCollaborators, removeCollaborator } from "./_core/advanced-features";
 
 export const appRouter = router({
   health: publicProcedure.query(() => ({ status: "ok", app: "Heliox AI" })),
@@ -268,6 +269,64 @@ export const appRouter = router({
       .query(async ({ input, ctx }) => {
         if (!ctx.user?.id) return null;
         return await getCachedResponse(ctx.user.id, input.toolId);
+      }),
+  }),
+
+  webhooks: router({
+    create: protectedProcedure
+      .input(z.object({ url: z.string().url(), events: z.array(z.string()) }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user?.id) return { success: false };
+        const result = await createWebhook(ctx.user.id, input.url, input.events);
+        return { success: !!result };
+      }),
+  }),
+
+  recommendations: router({
+    getRecommended: protectedProcedure.query(async ({ ctx }) => {
+      if (!ctx.user?.id) return [];
+      await updateUserPreferences(ctx.user.id);
+      return await getRecommendedTools(ctx.user.id);
+    }),
+  }),
+
+  collaboration: router({
+    addCollaborator: protectedProcedure
+      .input(z.object({ conversationId: z.number(), collaboratorId: z.number(), permission: z.enum(["read", "write"]) }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user?.id) return { success: false };
+        const result = await addCollaborator(input.conversationId, ctx.user.id, input.collaboratorId, input.permission);
+        return { success: !!result };
+      }),
+
+    createInvite: protectedProcedure
+      .input(z.object({ conversationId: z.number(), email: z.string().email(), permission: z.enum(["read", "write"]) }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user?.id) return { success: false, token: null };
+        const token = await createCollaborationInvite(input.conversationId, input.email, ctx.user.id, input.permission);
+        return { success: !!token, token };
+      }),
+
+    acceptInvite: protectedProcedure
+      .input(z.object({ token: z.string() }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user?.id) return { success: false };
+        const result = await acceptCollaborationInvite(input.token, ctx.user.id);
+        return { success: !!result };
+      }),
+
+    getCollaborators: protectedProcedure
+      .input(z.object({ conversationId: z.number() }))
+      .query(async ({ input }) => {
+        return await getCollaborators(input.conversationId);
+      }),
+
+    removeCollaborator: protectedProcedure
+      .input(z.object({ collaborationId: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user?.id) return { success: false };
+        const result = await removeCollaborator(input.collaborationId);
+        return { success: !!result };
       }),
   }),
 });
