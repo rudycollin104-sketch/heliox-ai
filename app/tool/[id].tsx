@@ -1,7 +1,8 @@
 import { FuturisticChat } from "@/components/futuristic-chat";
-import { ShareMenu } from "@/components/share-menu";
+import { ShareConversationPreview } from "@/components/share-conversation-preview";
 import { getToolById } from "@/constants/ai-tools";
 import { ChatMessage, useHeliox } from "@/lib/heliox-context";
+import { getToolTheme } from "@/lib/tool-themes";
 import { trpc } from "@/lib/trpc";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
@@ -15,9 +16,10 @@ export default function ToolScreen() {
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [showShareMenu, setShowShareMenu] = useState(false);
+  const [showSharePreview, setShowSharePreview] = useState(false);
   const [favorite, setFavorite] = useState(false);
 
+  const theme = tool ? getToolTheme(tool.id) : { primary: "#06b6d4", secondary: "#8b5cf6", icon: "🤖" };
   const chatMutation = trpc.ai.chat.useMutation();
 
   useEffect(() => {
@@ -97,12 +99,13 @@ export default function ToolScreen() {
 
   return (
     <View className="flex-1">
-      {/* Header futuriste */}
+      {/* Header futuriste avec thème personnalisé */}
       <LinearGradient
-        colors={["rgba(15, 23, 42, 0.95)", "rgba(88, 28, 135, 0.3)"]}
+        colors={[`${theme.primary}20`, `${theme.secondary}10`]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        className="flex-row items-center justify-between px-4 py-4 border-b border-purple-500/20"
+        className="flex-row items-center justify-between px-4 py-4 border-b"
+        style={{ borderBottomColor: `${theme.primary}40` }}
       >
         <View className="flex-row items-center gap-3 flex-1">
           <Pressable onPress={() => router.back()} className="p-2 active:opacity-60">
@@ -126,8 +129,8 @@ export default function ToolScreen() {
           >
             <Text className="text-xl">{favorite ? "❤️" : "🤍"}</Text>
           </Pressable>
-          <Pressable onPress={() => setShowShareMenu(!showShareMenu)} className="p-2 active:opacity-60">
-            <Text className="text-xl text-cyan-400">⋮</Text>
+          <Pressable onPress={() => setShowSharePreview(true)} className="p-2 active:opacity-60">
+            <Text className="text-xl text-cyan-400">📤</Text>
           </Pressable>
         </View>
       </LinearGradient>
@@ -144,22 +147,13 @@ export default function ToolScreen() {
         onSendMessage={handleSend}
       />
 
-      {/* Share menu */}
-      {showShareMenu && (
-        <View className="absolute bottom-0 right-0 bg-slate-900 border border-purple-500/30 rounded-lg m-4 overflow-hidden">
-          <Pressable
-            onPress={() => {
-              handleClearHistory();
-              setShowShareMenu(false);
-            }}
-            className="px-4 py-3 border-b border-purple-500/20 active:bg-purple-500/20"
-          >
-            <Text className="text-purple-200">Effacer l'historique</Text>
-          </Pressable>
-          <Pressable onPress={() => setShowShareMenu(false)} className="px-4 py-3 active:bg-purple-500/20">
-            <Text className="text-purple-200">Fermer</Text>
-          </Pressable>
-        </View>
+      {/* Share preview */}
+      {showSharePreview && (
+        <ShareConversationPreview
+          messages={messages}
+          toolName={tool.name}
+          onClose={() => setShowSharePreview(false)}
+        />
       )}
     </View>
   );

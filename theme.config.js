@@ -1,17 +1,31 @@
 /** @type {const} */
 const themeColors = {
-  primary: { light: '#6C3CE1', dark: '#8B5CF6' },
-  background: { light: '#F4F2FF', dark: '#0D0D1A' },
-  surface: { light: '#FFFFFF', dark: '#1A1A2E' },
-  foreground: { light: '#1A1A2E', dark: '#F0EEFF' },
-  muted: { light: '#7C7C9A', dark: '#9B9BB8' },
-  border: { light: '#E0DCFF', dark: '#2A2A4A' },
-  success: { light: '#22C55E', dark: '#4ADE80' },
-  warning: { light: '#F59E0B', dark: '#FBBF24' },
-  error: { light: '#EF4444', dark: '#F87171' },
-  accent: { light: '#00D4FF', dark: '#00D4FF' },
-  card: { light: '#FFFFFF', dark: '#1E1E35' },
-  tint: { light: '#6C3CE1', dark: '#8B5CF6' },
+  // Couleurs principales futuristes cyberpunk
+  primary: { light: '#06b6d4', dark: '#06b6d4' },          // Cyan brillant
+  secondary: { light: '#8b5cf6', dark: '#a78bfa' },       // Purple vibrant
+  accent: { light: '#ec4899', dark: '#f472b6' },          // Pink néon
+  
+  // Arrière-plans sombres
+  background: { light: '#0f172a', dark: '#0f172a' },      // Noir profond
+  surface: { light: '#1e293b', dark: '#1e293b' },         // Gris très foncé
+  
+  // Texte lumineux
+  foreground: { light: '#f1f5f9', dark: '#f1f5f9' },      // Blanc brillant
+  muted: { light: '#94a3b8', dark: '#64748b' },           // Gris moyen
+  
+  // Bordures brillantes
+  border: { light: '#334155', dark: '#334155' },          // Gris avec teinte cyan
+  
+  // États avec couleurs vives
+  success: { light: '#10b981', dark: '#34d399' },         // Vert émeraude
+  warning: { light: '#f59e0b', dark: '#fbbf24' },         // Orange doré
+  error: { light: '#ef4444', dark: '#f87171' },           // Rouge vif
+  
+  // Cartes avec gradient subtil
+  card: { light: '#1e293b', dark: '#1e293b' },            // Surface foncée
+  
+  // Teinte pour la navigation
+  tint: { light: '#06b6d4', dark: '#06b6d4' },            // Cyan
 };
 
 module.exports = { themeColors };
