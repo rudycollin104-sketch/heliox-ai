@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState } from "react";
 import { View, Text, ScrollView, TextInput, Pressable, ActivityIndicator } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, { FadeInUp, FadeInDown, useSharedValue, withSpring } from "react-native-reanimated";
-import { MediaInput } from "./media-input";
+import { AdvancedMediaInput } from "./advanced-media-input";
 import { cn } from "@/lib/utils";
 
 interface Message {
@@ -205,10 +205,11 @@ export function FuturisticChat({ messages, isLoading, onSendMessage }: Futuristi
         </View>
       </LinearGradient>
 
-      <MediaInput
+      <AdvancedMediaInput
         visible={showMediaInput}
         onClose={() => setShowMediaInput(false)}
         onImageSelected={handleImageSelected}
+        onDocumentSelected={(uri, name, type) => console.log("Document:", name, type)}
         onLinkAdded={handleLinkAdded}
       />
     </View>
