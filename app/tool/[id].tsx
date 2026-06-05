@@ -1,39 +1,22 @@
+import { FuturisticChat } from "@/components/futuristic-chat";
 import { ShareMenu } from "@/components/share-menu";
-import { StreamingResponse } from "@/components/streaming-response";
-import { ScreenContainer } from "@/components/screen-container";
 import { getToolById } from "@/constants/ai-tools";
-import { useColors } from "@/hooks/use-colors";
 import { ChatMessage, useHeliox } from "@/lib/heliox-context";
 import { trpc } from "@/lib/trpc";
 import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useRef, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { useEffect, useState } from "react";
+import { Alert, Pressable, Text, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 
 export default function ToolScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const colors = useColors();
   const tool = getToolById(id);
   const { isFavorite, toggleFavorite, addRecentTool, saveConversation, getConversation, clearConversation } = useHeliox();
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [streamingContent, setStreamingContent] = useState("");
-  const [isStreaming, setIsStreaming] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
-  const flatListRef = useRef<FlatList>(null);
+  const [favorite, setFavorite] = useState(false);
 
   const chatMutation = trpc.ai.chat.useMutation();
 
@@ -44,33 +27,12 @@ export default function ToolScreen() {
       if (saved.length > 0) {
         setMessages(saved);
       }
+      setFavorite(isFavorite(tool.id));
     }
   }, [tool?.id]);
 
-  useEffect(() => {
-    if (tool) {
-      saveConversation(tool.id, tool.name, messages);
-    }
-  }, [messages]);
-
-  if (!tool) {
-    return (
-      <ScreenContainer>
-        <View style={styles.notFound}>
-          <Text style={[styles.notFoundText, { color: colors.foreground }]}>Outil introuvable</Text>
-          <Pressable onPress={() => router.back()}>
-            <Text style={{ color: colors.primary }}>Retour</Text>
-          </Pressable>
-        </View>
-      </ScreenContainer>
-    );
-  }
-
-  const favorite = isFavorite(tool.id);
-
-  const handleSend = async () => {
-    const text = inputText.trim();
-    if (!text || isLoading) return;
+  const handleSend = async (text: string) => {
+    if (!text.trim() || !tool) return;
 
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
@@ -81,9 +43,7 @@ export default function ToolScreen() {
 
     const newMessages = [...messages, userMessage];
     setMessages(newMessages);
-    setInputText("");
     setIsLoading(true);
-    setIsStreaming(true);
 
     try {
       const result = await chatMutation.mutateAsync({
@@ -93,27 +53,23 @@ export default function ToolScreen() {
       });
 
       if (result && result.content) {
-        const content = result.content;
         const assistantMessage: ChatMessage = {
           id: (Date.now() + 1).toString(),
           role: "assistant",
-          content: content,
+          content: result.content,
           timestamp: Date.now(),
         };
         setMessages((prev) => [...prev, assistantMessage]);
+        if (tool) {
+          saveConversation(tool.id, tool.name, [...newMessages, assistantMessage]);
+        }
       }
     } catch (error) {
       console.error("Chat error:", error);
       Alert.alert("Erreur", "Impossible de contacter l'IA. Réessayez.");
     } finally {
-      setIsStreaming(false);
-      setStreamingContent("");
       setIsLoading(false);
     }
-
-    setTimeout(() => {
-      flatListRef.current?.scrollToEnd({ animated: true });
-    }, 100);
   };
 
   const handleClearHistory = () => {
@@ -122,217 +78,89 @@ export default function ToolScreen() {
       {
         text: "Effacer",
         onPress: () => {
-          clearConversation(tool.id);
-          setMessages([]);
+          if (tool) {
+            clearConversation(tool.id);
+            setMessages([]);
+          }
         },
       },
     ]);
   };
 
+  if (!tool) {
+    return (
+      <View className="flex-1 justify-center items-center bg-slate-950">
+        <Text className="text-white">Outil non trouvé</Text>
+      </View>
+    );
+  }
+
   return (
-    <ScreenContainer containerClassName="bg-background">
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.container}>
-        {/* Header */}
-        <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-          <Pressable onPress={() => router.back()} style={({ pressed }) => pressed && { opacity: 0.6 }}>
-            <Text style={[styles.backBtn, { color: colors.primary }]}>← Retour</Text>
+    <View className="flex-1">
+      {/* Header futuriste */}
+      <LinearGradient
+        colors={["rgba(15, 23, 42, 0.95)", "rgba(88, 28, 135, 0.3)"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        className="flex-row items-center justify-between px-4 py-4 border-b border-purple-500/20"
+      >
+        <View className="flex-row items-center gap-3 flex-1">
+          <Pressable onPress={() => router.back()} className="p-2 active:opacity-60">
+            <Text className="text-2xl text-cyan-400">←</Text>
           </Pressable>
-          <View style={styles.titleContainer}>
-            <Text style={[styles.title, { color: colors.foreground }]}>{tool.name}</Text>
-            <Text style={[styles.subtitle, { color: colors.muted }]}>{tool.category}</Text>
-          </View>
-          <View style={styles.actions}>
-            <Pressable
-              onPress={() => toggleFavorite(tool.id)}
-              style={({ pressed }) => pressed && { opacity: 0.6 }}
-            >
-              <Text style={styles.favoriteBtn}>{favorite ? "❤️" : "🤍"}</Text>
-            </Pressable>
-            <Pressable onPress={() => setShowShareMenu(true)} style={({ pressed }) => pressed && { opacity: 0.6 }}>
-              <Text style={styles.shareBtn}>📤</Text>
-            </Pressable>
+          <View className="flex-1">
+            <Text className="text-lg font-bold text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text">
+              {tool.name}
+            </Text>
+            <Text className="text-xs text-purple-300/60">{tool.category}</Text>
           </View>
         </View>
 
-        {/* Messages */}
-        <FlatList
-          ref={flatListRef}
-          data={messages}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <View
-              style={[
-                styles.messageBubble,
-                item.role === "user"
-                  ? { alignSelf: "flex-end", backgroundColor: colors.primary }
-                  : { alignSelf: "flex-start", backgroundColor: colors.surface },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.messageText,
-                  { color: item.role === "user" ? "#fff" : colors.foreground },
-                ]}
-              >
-                {item.content}
-              </Text>
-            </View>
-          )}
-          contentContainerStyle={styles.messagesList}
-          scrollEnabled={true}
-          ListFooterComponent={
-            isStreaming ? (
-              <View style={styles.streamingContainer}>
-                <View style={[styles.messageBubble, { backgroundColor: colors.surface, alignSelf: "flex-start" }]}>
-                  <Text style={[styles.messageText, { color: colors.foreground }]}>{streamingContent}</Text>
-                  <ActivityIndicator size="small" color={colors.primary} style={styles.loadingIndicator} />
-                </View>
-              </View>
-            ) : null
-          }
-        />
-
-        {/* Input */}
-        <View style={[styles.inputContainer, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
-          <TextInput
-            style={[
-              styles.input,
-              {
-                backgroundColor: colors.surface,
-                color: colors.foreground,
-                borderColor: colors.border,
-              },
-            ]}
-            placeholder="Écrivez votre message..."
-            placeholderTextColor={colors.muted}
-            value={inputText}
-            onChangeText={setInputText}
-            multiline
-            editable={!isLoading}
-          />
+        <View className="flex-row gap-2">
           <Pressable
-            onPress={handleSend}
-            disabled={isLoading || !inputText.trim()}
-            style={({ pressed }) => [
-              styles.sendBtn,
-              { backgroundColor: colors.primary },
-              (pressed || isLoading) && { opacity: 0.7 },
-            ]}
+            onPress={() => {
+              toggleFavorite(tool.id);
+              setFavorite(!favorite);
+            }}
+            className="p-2 active:opacity-60"
           >
-            {isLoading ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Text style={styles.sendBtnText}>Envoyer</Text>
-            )}
+            <Text className="text-xl">{favorite ? "❤️" : "🤍"}</Text>
+          </Pressable>
+          <Pressable onPress={() => setShowShareMenu(!showShareMenu)} className="p-2 active:opacity-60">
+            <Text className="text-xl text-cyan-400">⋮</Text>
           </Pressable>
         </View>
-      </KeyboardAvoidingView>
+      </LinearGradient>
 
-      <ShareMenu
-        visible={showShareMenu}
-        onClose={() => setShowShareMenu(false)}
-        conversationTitle={`${tool.name} - ${new Date().toLocaleDateString()}`}
-        conversationText={messages.map((m) => `${m.role === 'user' ? 'Vous' : 'IA'}: ${m.content}`).join('\n\n')}
+      {/* Chat futuriste */}
+      <FuturisticChat
+        messages={messages.map((msg) => ({
+          id: msg.id,
+          role: msg.role,
+          content: msg.content,
+          timestamp: new Date(msg.timestamp),
+        }))}
+        isLoading={isLoading}
+        onSendMessage={handleSend}
       />
-    </ScreenContainer>
+
+      {/* Share menu */}
+      {showShareMenu && (
+        <View className="absolute bottom-0 right-0 bg-slate-900 border border-purple-500/30 rounded-lg m-4 overflow-hidden">
+          <Pressable
+            onPress={() => {
+              handleClearHistory();
+              setShowShareMenu(false);
+            }}
+            className="px-4 py-3 border-b border-purple-500/20 active:bg-purple-500/20"
+          >
+            <Text className="text-purple-200">Effacer l'historique</Text>
+          </Pressable>
+          <Pressable onPress={() => setShowShareMenu(false)} className="px-4 py-3 active:bg-purple-500/20">
+            <Text className="text-purple-200">Fermer</Text>
+          </Pressable>
+        </View>
+      )}
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    gap: 12,
-  },
-  backBtn: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  titleContainer: {
-    flex: 1,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: "700",
-  },
-  subtitle: {
-    fontSize: 12,
-  },
-  actions: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  favoriteBtn: {
-    fontSize: 20,
-  },
-  shareBtn: {
-    fontSize: 20,
-  },
-  messagesList: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 12,
-  },
-  messageBubble: {
-    maxWidth: "85%",
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 12,
-  },
-  messageText: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  streamingContainer: {
-    marginTop: 8,
-  },
-  loadingIndicator: {
-    marginTop: 8,
-  },
-  inputContainer: {
-    flexDirection: "row",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    gap: 8,
-    alignItems: "flex-end",
-  },
-  input: {
-    flex: 1,
-    borderRadius: 12,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    maxHeight: 100,
-    fontSize: 14,
-  },
-  sendBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    minWidth: 70,
-  },
-  sendBtnText: {
-    color: "#fff",
-    fontWeight: "600",
-    fontSize: 14,
-  },
-  notFound: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 16,
-  },
-  notFoundText: {
-    fontSize: 18,
-    fontWeight: "700",
-  },
-});
