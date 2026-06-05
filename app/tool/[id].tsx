@@ -1,3 +1,5 @@
+import { ShareMenu } from "@/components/share-menu";
+import { StreamingResponse } from "@/components/streaming-response";
 import { ScreenContainer } from "@/components/screen-container";
 import { getToolById } from "@/constants/ai-tools";
 import { useColors } from "@/hooks/use-colors";
@@ -28,6 +30,9 @@ export default function ToolScreen() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [streamingContent, setStreamingContent] = useState("");
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [showShareMenu, setShowShareMenu] = useState(false);
   const flatListRef = useRef<FlatList>(null);
 
   const chatMutation = trpc.ai.chat.useMutation();
@@ -80,22 +85,32 @@ export default function ToolScreen() {
     setIsLoading(true);
 
     try {
+      setIsStreaming(true);
+      setStreamingContent("");
+
       const result = await chatMutation.mutateAsync({
         toolId: tool.id,
         systemPrompt: tool.systemPrompt,
         messages: newMessages.map((m) => ({ role: m.role, content: m.content })),
       });
 
-      const assistantMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: result.content,
-        timestamp: Date.now(),
-      };
-
-      setMessages((prev) => [...prev, assistantMessage]);
+      const content = result.content;
+      setStreamingContent(content);
+      
+      setTimeout(() => {
+        const assistantMessage: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          role: "assistant",
+          content: content,
+          timestamp: Date.now(),
+        };
+        setMessages((prev) => [...prev, assistantMessage]);
+        setIsStreaming(false);
+        setStreamingContent("");
+      }, Math.min(content.length * 8, 2000));
     } catch (error) {
       Alert.alert("Erreur", "Impossible de contacter l'IA. Réessayez.");
+      setIsStreaming(false);
     } finally {
       setIsLoading(false);
     }
@@ -186,12 +201,20 @@ export default function ToolScreen() {
             <Text style={styles.headerBtnIcon}>{favorite ? "❤️" : "🤍"}</Text>
           </Pressable>
           {messages.length > 0 && (
-            <Pressable
-              style={({ pressed }) => [styles.headerBtn, pressed && { opacity: 0.6 }]}
-              onPress={handleClear}
-            >
-              <Text style={styles.headerBtnIcon}>🗑️</Text>
-            </Pressable>
+            <>
+              <Pressable
+                style={({ pressed }) => [styles.headerBtn, pressed && { opacity: 0.6 }]}
+                onPress={() => setShowShareMenu(true)}
+              >
+                <Text style={styles.headerBtnIcon}>🔗</Text>
+              </Pressable>
+              <Pressable
+                style={({ pressed }) => [styles.headerBtn, pressed && { opacity: 0.6 }]}
+                onPress={handleClear}
+              >
+                <Text style={styles.headerBtnIcon}>🗑️</Text>
+              </Pressable>
+            </>
           )}
         </View>
       </View>
@@ -246,14 +269,20 @@ export default function ToolScreen() {
             showsVerticalScrollIndicator={false}
             onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
             ListFooterComponent={
-              isLoading ? (
+              isLoading || isStreaming ? (
                 <View style={styles.loadingRow}>
                   <View style={[styles.avatar, { backgroundColor: tool.color + "30" }]}>
                     <Text style={styles.avatarEmoji}>{tool.icon}</Text>
                   </View>
-                  <View style={[styles.loadingBubble, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                    <ActivityIndicator size="small" color={tool.color} />
-                    <Text style={[styles.loadingText, { color: colors.muted }]}>En train de réfléchir...</Text>
+                  <View style={[styles.messageBubble, styles.aiBubble, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                    {isStreaming && streamingContent ? (
+                      <StreamingResponse content={streamingContent} isStreaming={true} color={colors.foreground} />
+                    ) : (
+                      <>
+                        <ActivityIndicator size="small" color={tool.color} />
+                        <Text style={[styles.loadingText, { color: colors.muted }]}>En train de réfléchir...</Text>
+                      </>
+                    )}
                   </View>
                 </View>
               ) : null
@@ -288,6 +317,13 @@ export default function ToolScreen() {
           </View>
         </View>
       </KeyboardAvoidingView>
+
+      <ShareMenu
+        visible={showShareMenu}
+        onClose={() => setShowShareMenu(false)}
+        conversationTitle={tool?.name || "Conversation"}
+        conversationText={messages.map((m) => `${m.role === "user" ? "Vous" : tool?.name || "IA"}: ${m.content}`).join("\n\n")}
+      />
     </ScreenContainer>
   );
 }

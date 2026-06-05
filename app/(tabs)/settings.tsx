@@ -1,5 +1,7 @@
 import { ScreenContainer } from "@/components/screen-container";
+import { useAuth } from "@/hooks/use-auth";
 import { useColors } from "@/hooks/use-colors";
+import { router } from "expo-router";
 import { useHeliox } from "@/lib/heliox-context";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -16,9 +18,28 @@ import {
 
 export default function SettingsScreen() {
   const colors = useColors();
+  const { user, logout } = useAuth();
   const colorScheme = useColorScheme();
   const { favorites, recentTools, conversations } = useHeliox();
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+
+  const handleLogout = async () => {
+    Alert.alert(
+      "Déconnexion",
+      "Êtes-vous sûr de vouloir vous déconnecter ?",
+      [
+        { text: "Annuler", style: "cancel" },
+        {
+          text: "Déconnecter",
+          style: "destructive",
+          onPress: async () => {
+            await logout();
+            router.replace("/login");
+          },
+        },
+      ]
+    );
+  };
 
   const totalConversations = Object.keys(conversations).length;
 
@@ -169,6 +190,23 @@ export default function SettingsScreen() {
           </View>
         </View>
 
+        {/* Account */}
+        {user && (
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Account</Text>
+            <Pressable
+              style={({ pressed }) => [
+                styles.logoutBtn,
+                { backgroundColor: colors.error + "20", borderColor: colors.error },
+                pressed && { opacity: 0.7 },
+              ]}
+              onPress={handleLogout}
+            >
+              <Text style={[styles.logoutText, { color: colors.error }]}>Logout</Text>
+            </Pressable>
+          </View>
+        )}
+
         {/* Footer */}
         <View style={styles.footer}>
           <Text style={[styles.footerText, { color: colors.muted }]}>
@@ -280,6 +318,17 @@ const styles = StyleSheet.create({
   rowRight: { alignItems: "flex-end" },
   rowValue: { fontSize: 14 },
   divider: { height: 1, marginLeft: 56 },
+  logoutBtn: {
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: "center",
+  },
+  logoutText: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
   footer: {
     alignItems: "center",
     marginTop: 32,

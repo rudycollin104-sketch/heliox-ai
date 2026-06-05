@@ -63,3 +63,24 @@
 - [x] Historique des conversations (AsyncStorage)
 - [x] Interface de chat réutilisable
 - [x] Composant de prompt suggestions
+
+
+## Améliorations v1.1
+
+### Authentification Utilisateur
+- [x] Intégrer Manus OAuth pour la connexion
+- [x] Créer l'écran de login
+- [x] Synchroniser les favoris et historique avec le serveur
+- [x] Ajouter un bouton de déconnexion dans Paramètres
+
+### Streaming des Réponses
+- [x] Modifier l'endpoint LLM pour supporter le streaming
+- [x] Afficher les réponses token par token
+- [x] Ajouter un indicateur de streaming visuel
+- [x] Implémenter l'arrêt du streaming
+
+### Partage & Export
+- [x] Ajouter un bouton de copie pour chaque message
+- [x] Créer une fonction d'export en Markdown
+- [x] Implémenter le partage via système de partage native
+- [x] Ajouter un bouton de téléchargement de conversation

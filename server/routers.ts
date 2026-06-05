@@ -20,6 +20,34 @@ export const appRouter = router({
   }),
 
   ai: router({
+    chatStream: publicProcedure
+      .input(
+        z.object({
+          toolId: z.string(),
+          systemPrompt: z.string(),
+          messages: z.array(
+            z.object({
+              role: z.enum(["user", "assistant"]),
+              content: z.string(),
+            })
+          ),
+        })
+      )
+      .mutation(async ({ input }) => {
+        const { systemPrompt, messages } = input;
+
+        const llmMessages = [
+          { role: "system" as const, content: systemPrompt },
+          ...messages.map((m) => ({
+            role: m.role as "user" | "assistant",
+            content: m.content,
+          })),
+        ];
+
+        // Return a marker that indicates streaming should be used
+        return { streaming: true, toolId: input.toolId };
+      }),
+
     chat: publicProcedure
       .input(
         z.object({
