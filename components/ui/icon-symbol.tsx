@@ -9,21 +9,58 @@ type IconMapping = Record<SymbolViewProps["name"], ComponentProps<typeof Materia
 type IconSymbolName = keyof typeof MAPPING;
 
 /**
- * Add your SF Symbols to Material Icons mappings here.
- * - see Material Icons in the [Icons Directory](https://icons.expo.fyi).
- * - see SF Symbols in the [SF Symbols](https://developer.apple.com/sf-symbols/) app.
+ * SF Symbols to Material Icons mappings for Heliox AI
  */
 const MAPPING = {
+  // Navigation
   "house.fill": "home",
+  "safari.fill": "explore",
+  "heart.fill": "favorite",
+  "gearshape.fill": "settings",
+  // Actions
   "paperplane.fill": "send",
   "chevron.left.forwardslash.chevron.right": "code",
   "chevron.right": "chevron-right",
+  "chevron.left": "chevron-left",
+  "xmark": "close",
+  "plus": "add",
+  "magnifyingglass": "search",
+  "arrow.left": "arrow-back",
+  "square.and.arrow.up": "share",
+  "doc.on.doc": "content-copy",
+  "trash": "delete",
+  "star.fill": "star",
+  "star": "star-border",
+  // Categories
+  "music.note": "music-note",
+  "pencil": "edit",
+  "gamecontroller.fill": "sports-esports",
+  "paintbrush.fill": "brush",
+  "briefcase.fill": "work",
+  "book.fill": "menu-book",
+  "airplane": "flight",
+  "cpu": "memory",
+  // Tools
+  "mic.fill": "mic",
+  "waveform": "graphic-eq",
+  "text.bubble.fill": "chat",
+  "globe": "language",
+  "chart.bar.fill": "bar-chart",
+  "video.fill": "videocam",
+  "person.fill": "person",
+  "bolt.fill": "bolt",
+  "sparkles": "auto-awesome",
+  "wand.and.stars": "auto-fix-high",
+  // UI
+  "checkmark": "check",
+  "info.circle": "info",
+  "exclamationmark.triangle": "warning",
+  "moon.fill": "dark-mode",
+  "sun.max.fill": "light-mode",
 } as IconMapping;
 
 /**
  * An icon component that uses native SF Symbols on iOS, and Material Icons on Android and web.
- * This ensures a consistent look across platforms, and optimal resource usage.
- * Icon `name`s are based on SF Symbols and require manual mapping to Material Icons.
  */
 export function IconSymbol({
   name,
