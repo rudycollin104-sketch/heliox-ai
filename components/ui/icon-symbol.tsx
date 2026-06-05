@@ -57,6 +57,7 @@ const MAPPING = {
   "exclamationmark.triangle": "warning",
   "moon.fill": "dark-mode",
   "sun.max.fill": "light-mode",
+  "clock.fill": "history",
 } as IconMapping;
 
 /**

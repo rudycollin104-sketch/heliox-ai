@@ -84,3 +84,24 @@
 - [x] Créer une fonction d'export en Markdown
 - [x] Implémenter le partage via système de partage native
 - [x] Ajouter un bouton de téléchargement de conversation
+
+
+## Améliorations v1.2
+
+### Synchronisation Cloud
+- [ ] Créer les tables PostgreSQL pour les conversations
+- [ ] Ajouter un endpoint pour sauvegarder les conversations
+- [ ] Implémenter la synchronisation automatique
+- [ ] Récupérer l'historique cloud au login
+
+### Recherche & Filtres
+- [ ] Ajouter une barre de recherche dans l'historique
+- [ ] Implémenter la recherche par contenu
+- [ ] Ajouter des filtres par date
+- [ ] Filtrer par outil utilisé
+
+### Thèmes Personnalisés
+- [ ] Créer 3 palettes de couleurs (violet/cyan, bleu/vert, rose/orange)
+- [ ] Ajouter un sélecteur de thème dans Paramètres
+- [ ] Améliorer le contraste en mode sombre
+- [ ] Persister le choix de thème

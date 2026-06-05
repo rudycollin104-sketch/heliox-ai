@@ -1,11 +1,11 @@
 import { useColors } from "@/hooks/use-colors";
 import * as Clipboard from "expo-clipboard";
-import * as Sharing from "expo-sharing";
 import { useState } from "react";
 import {
   Alert,
   Modal,
   Pressable,
+  Share,
   StyleSheet,
   Text,
   View,
@@ -44,9 +44,10 @@ export function ShareMenu({
 
   const handleShare = async () => {
     try {
-      await Sharing.shareAsync(conversationText, {
-        mimeType: "text/plain",
-        dialogTitle: `Partager ${conversationTitle}`,
+      await Share.share({
+        message: conversationText,
+        title: conversationTitle,
+        url: undefined,
       });
       Alert.alert("✅", "Conversation partagée avec succès");
       onClose();
