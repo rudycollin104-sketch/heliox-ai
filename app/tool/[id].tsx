@@ -35,7 +35,16 @@ export default function ToolScreen() {
   const [showShareMenu, setShowShareMenu] = useState(false);
   const flatListRef = useRef<FlatList>(null);
 
-  const chatMutation = trpc.ai.chat.useMutation();
+  const chatMutation = trpc.ai.chat.useMutation({
+    onSuccess: (data) => {
+      setStreamingContent(data.content || "");
+      setIsStreaming(false);
+    },
+    onError: (error) => {
+      Alert.alert("Erreur", "Impossible de générer la réponse");
+      setIsStreaming(false);
+    },
+  });
 
   useEffect(() => {
     if (tool) {
